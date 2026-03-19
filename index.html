@@ -179,6 +179,41 @@
   .did-it-btn.done { background: #7ec8a0; opacity: 0.7; cursor: not-allowed; }
   .did-it-btn.done:hover { transform: none; }
 
+  .secondary-btn{
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.15s, background 0.3s, border-color 0.3s, opacity 0.3s;
+  }
+  .secondary-btn:hover { transform: translateY(-1px); }
+  .secondary-btn:active { transform: scale(0.98); }
+
+  /* ── Modal ── */
+  .modal-backdrop{
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.35);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    z-index: 300;
+  }
+  .modal-backdrop.show{ display:flex; }
+  .modal-card{
+    width: 100%;
+    max-width: 420px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: 0 10px 34px rgba(0,0,0,0.18);
+    padding: 1.25rem 1.25rem;
+  }
+
   /* ── Inputs ── */
   .styled-input {
     width: 100%; background: var(--surface); border: 2px solid var(--border);
@@ -316,6 +351,30 @@
       <div style="font-size:1rem; font-weight:700; margin-top:0.3rem;" id="habitDisplay">—</div>
     </div>
     <button class="did-it-btn" id="didItBtn">✓ I Did It!</button>
+    <button class="secondary-btn" id="newHabitBtn" type="button">＋ New habit</button>
+  </div>
+</div>
+
+<!-- ── New Habit Modal ── -->
+<div class="modal-backdrop" id="habitModal" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="habitModalTitle">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:0.75rem;">
+      <div>
+        <div id="habitModalTitle" style="font-size:1.05rem; font-weight:900; letter-spacing:0.01em;">Start a new habit</div>
+        <div style="margin-top:0.25rem; font-size:0.85rem; color:var(--text2); font-weight:700;">
+          This will reset your streak for a fresh start.
+        </div>
+      </div>
+      <button class="secondary-btn" id="habitModalClose" type="button" aria-label="Close" style="padding:0.45rem 0.75rem;">✕</button>
+    </div>
+    <div style="margin-top:1rem;">
+      <label style="font-size:0.78rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--text2); display:block; margin-bottom:0.4rem;">New habit</label>
+      <input id="habitEditInput" class="styled-input" type="text" placeholder="e.g. 10 minute walk" maxlength="60" autocomplete="off"/>
+    </div>
+    <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+      <button class="secondary-btn" id="habitModalCancel" type="button" style="flex:1;">Cancel</button>
+      <button class="did-it-btn" id="habitModalSave" type="button" style="flex:1; padding:0.85rem 1rem;">Save</button>
+    </div>
   </div>
 </div>
 
@@ -718,6 +777,45 @@ function handleDidIt() {
   setTimeout(() => renderApp(), 300);
 }
 
+// ── New habit flow ──
+function openHabitModal() {
+  const modal = document.getElementById('habitModal');
+  const input = document.getElementById('habitEditInput');
+  if (!modal || !input) return;
+
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden', 'false');
+  input.value = '';
+  setTimeout(() => input.focus(), 0);
+}
+
+function closeHabitModal() {
+  const modal = document.getElementById('habitModal');
+  if (!modal) return;
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+function saveNewHabit() {
+  const input = document.getElementById('habitEditInput');
+  if (!input) return;
+  const newHabit = input.value.trim();
+  if (!newHabit) {
+    input.focus();
+    return;
+  }
+
+  state.habit = newHabit;
+  state.streak = 0;
+  state.history = {};
+  state.lastLog = null;
+  state.created = todayStr();
+  saveState(state);
+
+  closeHabitModal();
+  renderApp();
+}
+
 // ── Dark mode ──
 function initDarkMode() {
   const toggle = document.getElementById('darkToggle');
@@ -782,6 +880,39 @@ function init() {
   if (btn && !btn._wired) {
     btn._wired = true;
     btn.addEventListener('click', handleDidIt);
+  }
+
+  // New habit button + modal wiring
+  const newHabitBtn = document.getElementById('newHabitBtn');
+  if (newHabitBtn && !newHabitBtn._wired) {
+    newHabitBtn._wired = true;
+    newHabitBtn.addEventListener('click', openHabitModal);
+  }
+
+  const modal = document.getElementById('habitModal');
+  const saveBtn = document.getElementById('habitModalSave');
+  const cancelBtn = document.getElementById('habitModalCancel');
+  const closeBtn = document.getElementById('habitModalClose');
+  if (saveBtn && !saveBtn._wired) { saveBtn._wired = true; saveBtn.addEventListener('click', saveNewHabit); }
+  if (cancelBtn && !cancelBtn._wired) { cancelBtn._wired = true; cancelBtn.addEventListener('click', closeHabitModal); }
+  if (closeBtn && !closeBtn._wired) { closeBtn._wired = true; closeBtn.addEventListener('click', closeHabitModal); }
+
+  if (modal && !modal._wired) {
+    modal._wired = true;
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeHabitModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeHabitModal();
+    });
+  }
+
+  const habitEditInput = document.getElementById('habitEditInput');
+  if (habitEditInput && !habitEditInput._wired) {
+    habitEditInput._wired = true;
+    habitEditInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveNewHabit();
+    });
   }
 }
 
