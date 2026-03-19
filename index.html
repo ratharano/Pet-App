@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<!--
+  ╔══════════════════════════════════════════════════════╗
+  ║             PetHabit — Deploy to Vercel              ║
+  ╠══════════════════════════════════════════════════════╣
+  ║  60-Second Deploy:                                   ║
+  ║  1. Save this file as index.html                     ║
+  ║  2. npm i -g vercel  (if not installed)              ║
+  ║  3. vercel --yes  (run in same folder)               ║
+  ║  4. Done — Vercel gives you a live HTTPS URL         ║
+  ║                                                      ║
+  ║  Or drag the folder to vercel.com/new                ║
+  ║  No config needed — single file, zero deps.          ║
+  ╚══════════════════════════════════════════════════════╝
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#f0ebe3"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="PetHabit"/>
+<meta name="description" content="A tiny creature counting on your habits."/>
+<title>PetHabit</title>
+<link rel="manifest" id="manifest-link"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Lora:ital@0;1&display=swap');
+
+  :root {
+    --bg: #f5f0e8;
+    --surface: #fffdf8;
+    --surface2: #eee8da;
+    --text: #3a3530;
+    --text2: #7a7068;
+    --accent: #6db89f;
+    --accent2: #e07b5a;
+    --critical: #c0392b;
+    --border: #ddd5c5;
+    --shadow: rgba(58,53,48,0.08);
+  }
+  .dark {
+    --bg: #1a1814;
+    --surface: #242118;
+    --surface2: #2e2b24;
+    --text: #f0ebe3;
+    --text2: #9e9688;
+    --accent: #5aa888;
+    --accent2: #d06a49;
+    --border: #3a3730;
+    --shadow: rgba(0,0,0,0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    transition: background 0.4s, color 0.4s;
+    overflow: hidden;
+  }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100dvh; }
+
+  /* ── Onboarding ── */
+  #onboarding {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 2rem; z-index: 100; transition: opacity 0.6s;
+  }
+  #onboarding.hide { opacity: 0; pointer-events: none; }
+
+  /* ── Main UI ── */
+  #app { width: 100%; max-width: 420px; padding: 1.5rem 1rem; display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
+
+  /* ── Pet Stage ── */
+  .pet-wrap {
+    position: relative; width: 200px; height: 200px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── Egg animations ── */
+  @keyframes tremble {
+    0%,100% { transform: rotate(0deg) translateX(0); }
+    15%     { transform: rotate(-3deg) translateX(-2px); }
+    30%     { transform: rotate(3deg) translateX(2px); }
+    45%     { transform: rotate(-2deg) translateX(-1px); }
+    60%     { transform: rotate(2deg) translateX(1px); }
+    75%     { transform: rotate(-1deg) translateX(0); }
+  }
+  @keyframes tremble-sad {
+    0%,100% { transform: rotate(0deg) translateX(0) translateY(0); }
+    20%     { transform: rotate(-5deg) translateX(-3px) translateY(1px); }
+    40%     { transform: rotate(5deg) translateX(3px) translateY(1px); }
+    60%     { transform: rotate(-3deg) translateX(-2px) translateY(2px); }
+    80%     { transform: rotate(3deg) translateX(2px) translateY(2px); }
+  }
+  #egg-svg { animation: tremble 1.8s ease-in-out infinite; transform-origin: center bottom; }
+  #egg-svg.sad { animation: tremble-sad 0.9s ease-in-out infinite; }
+  #egg-svg.critical { animation: tremble-sad 0.6s ease-in-out infinite; filter: grayscale(0.6) brightness(0.85); }
+
+  /* ── Baby animations ── */
+  @keyframes wag {
+    0%,100% { transform: rotate(0deg); }
+    25%     { transform: rotate(18deg); }
+    75%     { transform: rotate(-18deg); }
+  }
+  @keyframes float-baby {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-6px); }
+  }
+  #baby-svg { animation: float-baby 2.4s ease-in-out infinite; }
+  #baby-svg.sad { animation: none; }
+  #baby-svg.critical { animation: none; filter: grayscale(0.6) brightness(0.8); }
+  #baby-tail { transform-origin: 90% 60%; animation: wag 0.8s ease-in-out infinite; }
+  #baby-svg.sad #baby-tail, #baby-svg.critical #baby-tail { animation: none; }
+
+  /* ── Adult animations ── */
+  @keyframes breathe {
+    0%,100% { transform: scaleX(1) scaleY(1); }
+    50%     { transform: scaleX(1.03) scaleY(0.97); }
+  }
+  @keyframes adult-tail-wag {
+    0%,100% { transform: rotate(0deg); }
+    30%     { transform: rotate(25deg); }
+    70%     { transform: rotate(-25deg); }
+  }
+  #adult-svg { transform-origin: center center; animation: breathe 3s ease-in-out infinite; }
+  #adult-svg.sad { animation: none; }
+  #adult-svg.critical { animation: none; filter: grayscale(0.6) brightness(0.75); }
+  #adult-tail { transform-origin: 85% 55%; animation: adult-tail-wag 1.0s ease-in-out infinite; }
+  #adult-svg.sad #adult-tail, #adult-svg.critical #adult-tail { animation: none; }
+
+  /* ── Sparkles ── */
+  @keyframes sparkle {
+    0%   { opacity: 0; transform: scale(0) rotate(0deg); }
+    50%  { opacity: 1; transform: scale(1.2) rotate(180deg); }
+    100% { opacity: 0; transform: scale(0) rotate(360deg); }
+  }
+  .sparkle { position: absolute; pointer-events: none; animation: sparkle 1.2s ease-out forwards; }
+
+  /* ── Feed reaction ── */
+  @keyframes pop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.15); }
+    70%  { transform: scale(0.95); }
+    100% { transform: scale(1); }
+  }
+  .pet-pop { animation: pop 0.4s ease-out forwards !important; }
+
+  /* ── Floating heart ── */
+  @keyframes float-up {
+    0%   { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-70px) scale(1.4); }
+  }
+  .float-heart { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); pointer-events: none; animation: float-up 1.2s ease-out forwards; font-size: 1.6rem; }
+
+  /* ── Streak bar ── */
+  .streak-bar { display: flex; gap: 5px; }
+  .streak-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); transition: background 0.4s, transform 0.3s; }
+  .streak-dot.done { background: var(--accent); transform: scale(1.15); }
+  .streak-dot.missed { background: var(--accent2); }
+
+  /* ── Button ── */
+  .did-it-btn {
+    background: var(--accent);
+    color: white;
+    border: none; border-radius: 100px;
+    padding: 1rem 2.5rem; font-size: 1.15rem; font-weight: 800;
+    font-family: 'Nunito', sans-serif;
+    cursor: pointer; letter-spacing: 0.03em;
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 35%, transparent);
+    transition: transform 0.15s, box-shadow 0.15s, background 0.3s, opacity 0.3s;
+    position: relative; overflow: hidden;
+  }
+  .did-it-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px color-mix(in srgb, var(--accent) 40%, transparent); }
+  .did-it-btn:active { transform: scale(0.96); }
+  .did-it-btn.done { background: #7ec8a0; opacity: 0.7; cursor: not-allowed; }
+  .did-it-btn.done:hover { transform: none; }
+
+  /* ── Inputs ── */
+  .styled-input {
+    width: 100%; background: var(--surface); border: 2px solid var(--border);
+    border-radius: 14px; padding: 0.9rem 1.1rem; font-size: 1rem; font-weight: 600;
+    font-family: 'Nunito', sans-serif; color: var(--text);
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.4s;
+    outline: none;
+  }
+  .styled-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 1.25rem 1.5rem;
+    box-shadow: 0 2px 16px var(--shadow);
+    transition: background 0.4s, border-color 0.4s;
+    width: 100%;
+  }
+
+  /* ── Dark toggle ── */
+  .dark-toggle {
+    position: fixed; top: 1rem; right: 1rem;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 50%; width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 1.1rem; transition: background 0.3s, border-color 0.4s;
+    z-index: 200;
+  }
+
+  /* ── Miss banner ── */
+  @keyframes slide-in { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .miss-banner {
+    background: color-mix(in srgb, var(--accent2) 15%, transparent);
+    border: 1.5px solid color-mix(in srgb, var(--accent2) 40%, transparent);
+    border-radius: 14px; padding: 0.75rem 1rem;
+    font-size: 0.85rem; color: var(--accent2); font-weight: 700;
+    text-align: center; width: 100%;
+    animation: slide-in 0.4s ease-out;
+  }
+
+  /* ── Italic quote ── */
+  .pet-quote { font-family: 'Lora', serif; font-style: italic; color: var(--text2); font-size: 0.9rem; text-align: center; }
+
+  /* ── Stage label ── */
+  .stage-chip {
+    background: var(--surface2); border-radius: 100px; padding: 3px 12px;
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text2); border: 1px solid var(--border);
+  }
+
+  /* ── Confetti ── */
+  @keyframes confetti-fall {
+    0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(120px) rotate(720deg); opacity: 0; }
+  }
+  .confetti-piece { position: fixed; width: 8px; height: 8px; border-radius: 2px; pointer-events: none; animation: confetti-fall 1.2s ease-in forwards; z-index: 999; }
+</style>
+</head>
+<body>
+
+<!-- ── Dark Toggle ── -->
+<button class="dark-toggle" id="darkToggle" title="Toggle dark mode">🌙</button>
+
+<!-- ── Onboarding ── -->
+<div id="onboarding">
+  <div style="max-width:340px; width:100%; display:flex; flex-direction:column; align-items:center; gap:1.8rem;">
+    <!-- Trembling egg in onboarding -->
+    <div class="pet-wrap" id="ob-egg-wrap">
+      <svg id="ob-egg" viewBox="0 0 120 140" width="140" height="140" style="animation: tremble 1.6s ease-in-out infinite; transform-origin: center bottom;">
+        <defs>
+          <radialGradient id="eg0" cx="42%" cy="35%" r="58%">
+            <stop offset="0%" stop-color="#fff9f0"/>
+            <stop offset="100%" stop-color="#e8d9c0"/>
+          </radialGradient>
+        </defs>
+        <ellipse cx="60" cy="75" rx="46" ry="58" fill="url(#eg0)" stroke="#d4c4a8" stroke-width="1.5"/>
+        <!-- sleepy eyes -->
+        <ellipse cx="44" cy="72" rx="5" ry="3" fill="#b0926e"/>
+        <ellipse cx="76" cy="72" rx="5" ry="3" fill="#b0926e"/>
+        <!-- tiny mouth -->
+        <path d="M52 86 Q60 90 68 86" stroke="#b0926e" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <p class="pet-quote" style="font-size:1.05rem;">"I'm counting on you to survive."</p>
+
+    <div style="width:100%; display:flex; flex-direction:column; gap:1rem;">
+      <div>
+        <label style="font-size:0.78rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--text2); display:block; margin-bottom:0.4rem;">Name your companion</label>
+        <input id="petNameInput" class="styled-input" type="text" placeholder="e.g. Mochi" maxlength="20" autocomplete="off"/>
+      </div>
+      <div>
+        <label style="font-size:0.78rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--text2); display:block; margin-bottom:0.4rem;">Your daily habit</label>
+        <input id="habitInput" class="styled-input" type="text" placeholder="e.g. Drink 2L water" maxlength="60" autocomplete="off"/>
+      </div>
+      <button id="startBtn" class="did-it-btn" style="margin-top:0.3rem; width:100%;">Begin →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main App ── -->
+<div id="app" style="display:none;">
+  <!-- Header -->
+  <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+    <div>
+      <div style="font-size:1.4rem; font-weight:800;" id="petNameDisplay">—</div>
+      <div id="stageChip" class="stage-chip">Egg</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text2);">streak</div>
+      <div style="font-size:1.6rem; font-weight:800; color:var(--accent);" id="streakCount">0</div>
+    </div>
+  </div>
+
+  <!-- Miss banner (shown when applicable) -->
+  <div id="missBanner" style="display:none;"></div>
+
+  <!-- Pet area -->
+  <div class="pet-wrap" id="petWrap" style="width:220px; height:220px;">
+    <!-- SVGs injected by JS -->
+  </div>
+
+  <!-- Quote -->
+  <p class="pet-quote" id="petQuote">...</p>
+
+  <!-- Streak dots -->
+  <div class="card" style="text-align:center;">
+    <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text2); margin-bottom:0.75rem;">Last 7 days</div>
+    <div class="streak-bar" id="streakBar" style="justify-content:center;"></div>
+  </div>
+
+  <!-- Habit + button -->
+  <div class="card" style="display:flex; flex-direction:column; align-items:center; gap:1rem;">
+    <div style="text-align:center;">
+      <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text2);">Today's habit</div>
+      <div style="font-size:1rem; font-weight:700; margin-top:0.3rem;" id="habitDisplay">—</div>
+    </div>
+    <button class="did-it-btn" id="didItBtn">✓ I Did It!</button>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  PetHabit — Core Logic
+// ─────────────────────────────────────────────
+
+const STORAGE_KEY = 'pethabit_v1';
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { return null; }
+}
+function saveState(s) { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function daysBetween(a, b) {
+  const ms = new Date(b) - new Date(a);
+  return Math.round(ms / 86400000);
+}
+
+// ── PWA manifest & service worker (inline) ──
+function injectPWA() {
+  const manifest = {
+    name: "PetHabit",
+    short_name: "PetHabit",
+    description: "A tiny creature counting on your habits.",
+    start_url: "/",
+    display: "standalone",
+    background_color: "#f5f0e8",
+    theme_color: "#f0ebe3",
+    icons: [
+      { src: "data:image/svg+xml;base64," + btoa(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='#f5f0e8'/><ellipse cx='96' cy='105' rx='58' ry='72' fill='#e8d9c0' stroke='#d4c4a8' stroke-width='3'/><ellipse cx='78' cy='100' rx='7' ry='5' fill='#b0926e'/><ellipse cx='114' cy='100' rx='7' ry='5' fill='#b0926e'/><path d='M82 120 Q96 130 110 120' stroke='#b0926e' stroke-width='3' fill='none' stroke-linecap='round'/></svg>`), sizes: "192x192", type: "image/svg+xml" },
+      { src: "data:image/svg+xml;base64," + btoa(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='#f5f0e8'/><ellipse cx='256' cy='280' rx='150' ry='190' fill='#e8d9c0' stroke='#d4c4a8' stroke-width='4'/><ellipse cx='210' cy='265' rx='18' ry='13' fill='#b0926e'/><ellipse cx='302' cy='265' rx='18' ry='13' fill='#b0926e'/><path d='M218 320 Q256 345 294 320' stroke='#b0926e' stroke-width='6' fill='none' stroke-linecap='round'/></svg>`), sizes: "512x512", type: "image/svg+xml" }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+  document.getElementById('manifest-link').href = URL.createObjectURL(blob);
+
+  if ('serviceWorker' in navigator) {
+    const sw = `
+self.addEventListener('install', e => { self.skipWaiting(); });
+self.addEventListener('activate', e => { e.waitUntil(clients.claim()); });
+self.addEventListener('fetch', e => {
+  e.respondWith(fetch(e.request).catch(() => new Response('Offline — open the app when connected once to cache.')));
+});`;
+    const swBlob = new Blob([sw], {type: 'application/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
+  }
+}
+
+// ── SVG Builders ──
+function buildEggSVG(state) {
+  const cls = state === 'healthy' ? '' : state === 'sad' ? 'sad' : 'critical';
+  const fill0 = state === 'critical' ? '#c8b89a' : '#fff9f0';
+  const fill1 = state === 'critical' ? '#b8a888' : '#e8d9c0';
+  const eyes = state === 'healthy'
+    ? `<circle cx="45" cy="73" r="5.5" fill="#5a4030"/>
+       <circle cx="75" cy="73" r="5.5" fill="#5a4030"/>
+       <circle cx="47" cy="71" r="1.8" fill="white"/>
+       <circle cx="77" cy="71" r="1.8" fill="white"/>
+       <path d="M50 85 Q60 92 70 85" stroke="#5a4030" stroke-width="2.2" fill="none" stroke-linecap="round"/>`
+    : state === 'sad'
+    ? `<ellipse cx="45" cy="75" rx="5.5" ry="4" fill="#8a7060"/>
+       <ellipse cx="75" cy="75" rx="5.5" ry="4" fill="#8a7060"/>
+       <path d="M50 88 Q60 84 70 88" stroke="#8a7060" stroke-width="2" fill="none" stroke-linecap="round"/>
+       <!-- tear -->
+       <ellipse cx="42" cy="82" rx="2" ry="3.5" fill="#aaccee" opacity="0.7"/>`
+    : `<ellipse cx="45" cy="76" rx="5" ry="3.5" fill="#888078"/>
+       <ellipse cx="75" cy="76" rx="5" ry="3.5" fill="#888078"/>
+       <path d="M50 89 Q60 85 70 89" stroke="#888078" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+
+  const sparkles = state === 'healthy' ? `
+    <g opacity="0.85">
+      <path d="M105 25 L107 30 L112 28 L108 33 L113 36 L108 35 L107 40 L105 35 L100 37 L104 33 L100 29 L105 31 Z" fill="#f5c842" transform="scale(0.7)"/>
+      <path d="M15 45 L16.5 49 L21 47 L17.5 51 L21 54 L17 53 L15 58 L13 53 L9 55 L12.5 51 L9 47 L13 49 Z" fill="#6db89f" transform="scale(0.5)"/>
+    </g>` : '';
+
+  return `<svg id="egg-svg" class="${cls}" viewBox="0 0 120 140" width="180" height="180">
+    <defs>
+      <radialGradient id="egG" cx="40%" cy="30%" r="60%">
+        <stop offset="0%" stop-color="${fill0}"/>
+        <stop offset="100%" stop-color="${fill1}"/>
+      </radialGradient>
+    </defs>
+    ${sparkles}
+    <ellipse cx="60" cy="78" rx="48" ry="60" fill="url(#egG)" stroke="#d4c4a8" stroke-width="1.5"/>
+    <!-- shell crack detail -->
+    <path d="M55 42 L58 50 L53 55 L60 58" stroke="#d0bfa5" stroke-width="1" fill="none" opacity="0.5"/>
+    ${eyes}
+  </svg>`;
+}
+
+function buildBabySVG(state) {
+  const cls = state === 'healthy' ? '' : state === 'sad' ? 'sad' : 'critical';
+  const bodyColor = state === 'critical' ? '#9ab8a0' : '#7dd4a0';
+  const bellyColor = state === 'critical' ? '#c0d4c0' : '#d4f0e0';
+  const eyeColor   = state === 'healthy' ? '#2a4030' : '#6a7068';
+  const mouth = state === 'healthy'
+    ? `<path d="M54 90 Q60 97 66 90" stroke="${eyeColor}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`
+    : state === 'sad'
+    ? `<path d="M54 94 Q60 89 66 94" stroke="${eyeColor}" stroke-width="2" fill="none" stroke-linecap="round"/>
+       <ellipse cx="50" cy="96" rx="2" ry="3.5" fill="#aaccee" opacity="0.7"/>`
+    : `<line x1="54" y1="91" x2="66" y2="91" stroke="${eyeColor}" stroke-width="2" stroke-linecap="round"/>`;
+
+  const ears = `<ellipse cx="36" cy="48" rx="10" ry="14" fill="${bodyColor}" stroke="#5aaa80" stroke-width="1"/>
+                <ellipse cx="84" cy="48" rx="10" ry="14" fill="${bodyColor}" stroke="#5aaa80" stroke-width="1"/>
+                <ellipse cx="36" cy="48" rx="5" ry="8" fill="#f0a0a0" opacity="0.6"/>
+                <ellipse cx="84" cy="48" rx="5" ry="8" fill="#f0a0a0" opacity="0.6"/>`;
+
+  const sparkles = state === 'healthy' ? `
+    <g>
+      <text x="98" y="45" font-size="12" opacity="0.9">✨</text>
+      <text x="8"  y="55" font-size="10" opacity="0.8">⭐</text>
+    </g>` : '';
+
+  const sad_lines = (state === 'sad' || state === 'critical') ? `
+    <line x1="40" y1="60" x2="48" y2="66" stroke="${eyeColor}" stroke-width="1.5" opacity="0.4"/>
+    <line x1="80" y1="60" x2="72" y2="66" stroke="${eyeColor}" stroke-width="1.5" opacity="0.4"/>` : '';
+
+  return `<svg id="baby-svg" class="${cls}" viewBox="0 0 120 130" width="190" height="190">
+    ${sparkles}
+    ${ears}
+    <!-- body -->
+    <ellipse cx="60" cy="88" rx="38" ry="42" fill="${bodyColor}" stroke="#5aaa80" stroke-width="1.5"/>
+    <!-- belly -->
+    <ellipse cx="60" cy="95" rx="22" ry="26" fill="${bellyColor}" opacity="0.9"/>
+    <!-- head -->
+    <circle cx="60" cy="65" r="30" fill="${bodyColor}" stroke="#5aaa80" stroke-width="1.5"/>
+    <!-- eyes -->
+    <circle cx="50" cy="63" r="5.5" fill="white"/>
+    <circle cx="70" cy="63" r="5.5" fill="white"/>
+    <circle cx="51" cy="64" r="3.5" fill="${eyeColor}"/>
+    <circle cx="71" cy="64" r="3.5" fill="${eyeColor}"/>
+    <circle cx="52" cy="63" r="1.2" fill="white"/>
+    <circle cx="72" cy="63" r="1.2" fill="white"/>
+    ${sad_lines}
+    ${mouth}
+    <!-- tail -->
+    <path id="baby-tail" d="M95 100 Q115 88 110 105 Q105 115 95 108" fill="${bodyColor}" stroke="#5aaa80" stroke-width="1.2"/>
+    <!-- paws -->
+    <ellipse cx="38" cy="118" rx="11" ry="7" fill="${bodyColor}" stroke="#5aaa80" stroke-width="1"/>
+    <ellipse cx="82" cy="118" rx="11" ry="7" fill="${bodyColor}" stroke="#5aaa80" stroke-width="1"/>
+  </svg>`;
+}
+
+function buildAdultSVG(state) {
+  const cls = state === 'healthy' ? '' : state === 'sad' ? 'sad' : 'critical';
+  const bodyColor  = state === 'critical' ? '#8ab4a8' : '#5cb8b0';
+  const bellyColor = state === 'critical' ? '#b0ccc8' : '#a0e0d8';
+  const eyeColor   = state === 'healthy' ? '#1a3030' : '#5a6868';
+  const mouth = state === 'healthy'
+    ? `<path d="M49 95 Q60 105 71 95" stroke="${eyeColor}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+       <path d="M49 95 Q44 99 46 101" stroke="${eyeColor}" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+       <path d="M71 95 Q76 99 74 101" stroke="${eyeColor}" stroke-width="1.5" fill="none" stroke-linecap="round"/>`
+    : state === 'sad'
+    ? `<path d="M49 101 Q60 93 71 101" stroke="${eyeColor}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+       <ellipse cx="44" cy="104" rx="2.5" ry="4" fill="#aaccee" opacity="0.75"/>
+       <ellipse cx="76" cy="104" rx="2.5" ry="4" fill="#aaccee" opacity="0.75"/>`
+    : `<line x1="50" y1="98" x2="70" y2="98" stroke="${eyeColor}" stroke-width="2" stroke-linecap="round"/>`;
+
+  const mane = `<ellipse cx="60" cy="58" rx="32" ry="18" fill="#e08860" opacity="0.85"/>
+                <ellipse cx="38" cy="65" rx="14" ry="20" fill="#e08860" opacity="0.75"/>
+                <ellipse cx="82" cy="65" rx="14" ry="20" fill="#e08860" opacity="0.75"/>`;
+
+  const sparkles = state === 'healthy' ? `
+    <g>
+      <text x="100" y="38" font-size="14">✨</text>
+      <text x="4"   y="48" font-size="12">⭐</text>
+      <text x="105" y="85" font-size="10">💫</text>
+    </g>` : '';
+
+  return `<svg id="adult-svg" class="${cls}" viewBox="0 0 130 150" width="200" height="200">
+    ${sparkles}
+    ${mane}
+    <!-- body -->
+    <ellipse cx="62" cy="108" rx="42" ry="46" fill="${bodyColor}" stroke="#3a9898" stroke-width="1.8"/>
+    <!-- belly -->
+    <ellipse cx="62" cy="116" rx="24" ry="28" fill="${bellyColor}" opacity="0.88"/>
+    <!-- head -->
+    <circle cx="62" cy="72" r="34" fill="${bodyColor}" stroke="#3a9898" stroke-width="1.8"/>
+    <!-- snout -->
+    <ellipse cx="62" cy="92" rx="16" ry="11" fill="${bellyColor}" opacity="0.9"/>
+    <!-- eyes -->
+    <circle cx="48" cy="68" r="7" fill="white"/>
+    <circle cx="76" cy="68" r="7" fill="white"/>
+    <circle cx="49.5" cy="69" r="4.5" fill="${eyeColor}"/>
+    <circle cx="77.5" cy="69" r="4.5" fill="${eyeColor}"/>
+    <circle cx="50.5" cy="67.5" r="1.5" fill="white"/>
+    <circle cx="78.5" cy="67.5" r="1.5" fill="white"/>
+    <!-- eyebrows/expression -->
+    ${state === 'healthy'
+      ? `<path d="M42 60 Q48 57 54 60" stroke="${eyeColor}" stroke-width="2" fill="none" stroke-linecap="round"/>
+         <path d="M70 60 Q76 57 82 60" stroke="${eyeColor}" stroke-width="2" fill="none" stroke-linecap="round"/>`
+      : state === 'sad'
+      ? `<path d="M42 58 Q48 62 54 58" stroke="${eyeColor}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+         <path d="M70 58 Q76 62 82 58" stroke="${eyeColor}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`
+      : `<path d="M42 60 Q48 63 54 60" stroke="${eyeColor}" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.5"/>
+         <path d="M70 60 Q76 63 82 60" stroke="${eyeColor}" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.5"/>`}
+    <!-- nose -->
+    <ellipse cx="62" cy="88" rx="5" ry="3.5" fill="#3a6060" opacity="0.6"/>
+    ${mouth}
+    <!-- tail -->
+    <path id="adult-tail" d="M100 118 Q125 100 120 125 Q115 142 100 135 Q92 128 100 118" fill="#e08860" stroke="#c06840" stroke-width="1.2"/>
+    <!-- front paws -->
+    <ellipse cx="40" cy="142" rx="13" ry="8" fill="${bodyColor}" stroke="#3a9898" stroke-width="1.2"/>
+    <ellipse cx="84" cy="142" rx="13" ry="8" fill="${bodyColor}" stroke="#3a9898" stroke-width="1.2"/>
+  </svg>`;
+}
+
+// ── Quotes ──
+const QUOTES = {
+  healthy: [
+    "You make me so happy 🌿",
+    "I feel strong because of you!",
+    "Today is a good day ✨",
+    "Together we thrive.",
+    "You're my favourite human.",
+    "Glowing because of you 💚"
+  ],
+  sad: [
+    "I missed you yesterday…",
+    "Please don't forget me.",
+    "I'm a little sad today 🌧",
+    "I'll wait for you… always.",
+    "Yesterday was hard without you."
+  ],
+  critical: [
+    "I really need you right now.",
+    "Please… come back to me.",
+    "I'm not doing well 😔",
+    "I believe in you. Please try.",
+    "We can get through this together."
+  ]
+};
+
+function randomQuote(state) {
+  const arr = QUOTES[state];
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// ── App State ──
+let state = null;
+
+function getStage(streak) {
+  if (streak >= 30) return 'adult';
+  if (streak >= 7)  return 'baby';
+  return 'egg';
+}
+
+function getPetState(state) {
+  const today = todayStr();
+  const lastLog = state.lastLog;
+  const missedDays = lastLog ? Math.max(0, daysBetween(lastLog, today) - 1) : 0;
+  if (missedDays >= 2) return 'critical';
+  if (missedDays === 1) return 'sad';
+  return 'healthy';
+}
+
+function renderPet(petState, stage) {
+  const wrap = document.getElementById('petWrap');
+  if (stage === 'egg')   wrap.innerHTML = buildEggSVG(petState);
+  if (stage === 'baby')  wrap.innerHTML = buildBabySVG(petState);
+  if (stage === 'adult') wrap.innerHTML = buildAdultSVG(petState);
+}
+
+function renderStreakBar(history) {
+  const bar = document.getElementById('streakBar');
+  bar.innerHTML = '';
+  const today = todayStr();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const dot = document.createElement('div');
+    dot.className = 'streak-dot';
+    if (history && history[ds]) dot.classList.add('done');
+    else if (ds < today && history) {
+      // only mark missed if we've started (have any history entry)
+      const hasStarted = Object.keys(history).length > 0;
+      const startDate = hasStarted ? Object.keys(history).sort()[0] : today;
+      if (ds >= startDate) dot.classList.add('missed');
+    }
+    bar.appendChild(dot);
+  }
+}
+
+function spawnSparkles() {
+  const wrap = document.getElementById('petWrap');
+  const colors = ['#f5c842','#6db89f','#e07b5a','#a0d0ff','#f0a0d0'];
+  for (let i = 0; i < 7; i++) {
+    const s = document.createElement('div');
+    s.className = 'sparkle';
+    const sz = 8 + Math.random() * 10;
+    s.style.cssText = `width:${sz}px;height:${sz}px;background:${colors[i%colors.length]};border-radius:50%;
+      left:${10+Math.random()*80}%;top:${10+Math.random()*70}%;
+      animation-delay:${Math.random()*0.4}s;`;
+    wrap.appendChild(s);
+    setTimeout(() => s.remove(), 1600);
+  }
+}
+
+function spawnConfetti() {
+  const colors = ['#f5c842','#6db89f','#e07b5a','#a0d0ff','#f0a0d0','#c8a0ff'];
+  for (let i = 0; i < 20; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti-piece';
+    c.style.cssText = `left:${10+Math.random()*80}vw;top:-20px;background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-delay:${Math.random()*0.6}s;animation-duration:${0.9+Math.random()*0.6}s;
+      transform:rotate(${Math.random()*360}deg);border-radius:${Math.random()>0.5?'50%':'2px'};`;
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 1700);
+  }
+}
+
+function renderApp() {
+  const ps = getPetState(state);
+  const stage = getStage(state.streak || 0);
+
+  document.getElementById('petNameDisplay').textContent = state.petName;
+  document.getElementById('habitDisplay').textContent = state.habit;
+  document.getElementById('streakCount').textContent = state.streak || 0;
+  document.getElementById('stageChip').textContent = stage.charAt(0).toUpperCase() + stage.slice(1);
+  document.getElementById('petQuote').textContent = randomQuote(ps);
+
+  renderPet(ps, stage);
+  renderStreakBar(state.history || {});
+
+  // Miss banner
+  const today = todayStr();
+  const lastLog = state.lastLog;
+  const missedDays = lastLog ? Math.max(0, daysBetween(lastLog, today) - 1) : 0;
+  const banner = document.getElementById('missBanner');
+  if (missedDays >= 2) {
+    banner.style.display = 'block';
+    banner.textContent = `⚠️ ${missedDays} days missed — ${state.petName} is suffering. Log today to help!`;
+  } else if (missedDays === 1) {
+    banner.style.display = 'block';
+    banner.textContent = `😔 You missed yesterday. ${state.petName} noticed.`;
+  } else {
+    banner.style.display = 'none';
+  }
+
+  // Button state
+  const btn = document.getElementById('didItBtn');
+  const doneToday = state.history && state.history[today];
+  if (doneToday) {
+    btn.textContent = '✓ Done Today!';
+    btn.classList.add('done');
+    btn.disabled = true;
+  } else {
+    btn.textContent = '✓ I Did It!';
+    btn.classList.remove('done');
+    btn.disabled = false;
+  }
+}
+
+function handleDidIt() {
+  const today = todayStr();
+  if (state.history && state.history[today]) return;
+
+  if (!state.history) state.history = {};
+  state.history[today] = true;
+  state.lastLog = today;
+
+  // Streak calc
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yd = `${yesterday.getFullYear()}-${String(yesterday.getMonth()+1).padStart(2,'0')}-${String(yesterday.getDate()).padStart(2,'0')}`;
+  if (state.history[yd]) {
+    state.streak = (state.streak || 0) + 1;
+  } else {
+    state.streak = 1;
+  }
+
+  saveState(state);
+
+  // Animate
+  const petSvg = document.querySelector('#petWrap svg');
+  if (petSvg) {
+    petSvg.classList.add('pet-pop');
+    setTimeout(() => petSvg.classList.remove('pet-pop'), 500);
+  }
+  spawnSparkles();
+  spawnConfetti();
+
+  // Float heart
+  const wrap = document.getElementById('petWrap');
+  const h = document.createElement('div');
+  h.className = 'float-heart';
+  h.textContent = '💚';
+  wrap.appendChild(h);
+  setTimeout(() => h.remove(), 1300);
+
+  // Re-render after brief delay for effect
+  setTimeout(() => renderApp(), 300);
+}
+
+// ── Dark mode ──
+function initDarkMode() {
+  const toggle = document.getElementById('darkToggle');
+  const saved = localStorage.getItem('pethabit_dark');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (saved === 'true' || (!saved && prefersDark)) {
+    document.documentElement.classList.add('dark');
+    toggle.textContent = '☀️';
+  }
+  toggle.addEventListener('click', () => {
+    const isDark = document.documentElement.classList.toggle('dark');
+    toggle.textContent = isDark ? '☀️' : '🌙';
+    localStorage.setItem('pethabit_dark', isDark);
+  });
+}
+
+// ── Init ──
+function init() {
+  injectPWA();
+  initDarkMode();
+
+  state = loadState();
+
+  if (!state || !state.petName || !state.habit) {
+    // Show onboarding
+    document.getElementById('onboarding').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+
+    document.getElementById('startBtn').addEventListener('click', () => {
+      const name  = document.getElementById('petNameInput').value.trim();
+      const habit = document.getElementById('habitInput').value.trim();
+      if (!name || !habit) {
+        document.getElementById('petNameInput').focus();
+        return;
+      }
+      state = { petName: name, habit: habit, streak: 0, history: {}, lastLog: null, created: todayStr() };
+      saveState(state);
+      document.getElementById('onboarding').classList.add('hide');
+      setTimeout(() => {
+        document.getElementById('onboarding').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+        renderApp();
+      }, 600);
+    });
+
+    // Enter key support
+    ['petNameInput','habitInput'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('startBtn').click();
+      });
+    });
+
+  } else {
+    document.getElementById('onboarding').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    renderApp();
+    document.getElementById('didItBtn').addEventListener('click', handleDidIt);
+  }
+
+  // Wire up button if already shown
+  const btn = document.getElementById('didItBtn');
+  if (btn && !btn._wired) {
+    btn._wired = true;
+    btn.addEventListener('click', handleDidIt);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
