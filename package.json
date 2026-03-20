@@ -1,0 +1,23 @@
+{
+  "name": "pet-app",
+  "version": "1.0.0",
+  "description": "PetHabit - A tiny creature counting on your habits",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"No tests configured for static HTML project\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ratharano/Pet-App.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ratharano/Pet-App/issues"
+  },
+  "homepage": "https://github.com/ratharano/Pet-App#readme",
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
+  }
+}
